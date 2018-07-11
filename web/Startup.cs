@@ -40,6 +40,7 @@ namespace web
             app.UseStaticFiles();
 
             app.UseCloud();
+            app.TrustProxy();
             app.UseHttpsRedirect();
 
             app.UseMvc(routes =>

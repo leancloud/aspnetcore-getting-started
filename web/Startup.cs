@@ -39,10 +39,8 @@ namespace web
 
             app.UseStaticFiles();
 
-            var cloud = new Cloud();
-            app.UseCloud(cloud);
+            app.UseCloud();
             app.UseHttpsRedirect();
-            cloud.Start();
 
             app.UseMvc(routes =>
             {

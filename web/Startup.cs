@@ -7,14 +7,36 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using StackExchange.Redis;
 
 namespace web
 {
+    public struct RedisConfigurationOptions
+    {
+        public string Password { get; set; }
+        public KeyValuePair<string, UInt16> EndPoint { get; set; }
+    }
+
     public class Startup
     {
         public string GetLeanCacheRedisConnectionString(string instanceName)
         {
             return Environment.GetEnvironmentVariable($"REDIS_URL_{instanceName}");
+        }
+
+        public RedisConfigurationOptions GetRedisConfiguration(string instanceName)
+        {
+            var connectionString = GetLeanCacheRedisConnectionString(instanceName);
+            var disassembleStrArray = connectionString.Split(':');
+            var passwordAndEndPointName = disassembleStrArray[2].Split('@');
+            var password = passwordAndEndPointName[0];
+            var endPointName = passwordAndEndPointName[1];
+            var port = UInt16.Parse(disassembleStrArray[3]);
+            return new RedisConfigurationOptions()
+            {
+                EndPoint = new KeyValuePair<string, ushort>(endPointName, port),
+                Password = password
+            };
         }
 
         public Startup(IConfiguration configuration)
@@ -27,13 +49,29 @@ namespace web
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            var instanceName = "dev";
             services.AddMvc();
             services.AddDistributedRedisCache(option =>
             {
-                var instanceName = "dev";
+
                 option.Configuration = GetLeanCacheRedisConnectionString(instanceName);
                 option.InstanceName = instanceName;
             });
+            var redisConfiguration = GetRedisConfiguration(instanceName);
+            ConfigurationOptions config = new ConfigurationOptions
+            {
+                EndPoints =
+                {
+                    {
+                        redisConfiguration.EndPoint.Key, redisConfiguration.EndPoint.Value
+                    },
+                },
+                KeepAlive = 180,
+                DefaultVersion = new Version(2, 8, 8),
+                Password = redisConfiguration.Password
+            };
+            var conn = ConnectionMultiplexer.Connect(config);
+            services.AddSingleton<IConnectionMultiplexer>(conn);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

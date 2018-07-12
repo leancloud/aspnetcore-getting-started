@@ -41,6 +41,7 @@ namespace web
 
             app.UseCloud();
             app.TrustProxy();
+            app.UseLog();
             app.UseHttpsRedirect();
 
             app.UseMvc(routes =>

@@ -12,6 +12,11 @@ namespace web
 {
     public class Startup
     {
+        public string GetLeanCacheRedisConnectionString(string instanceName)
+        {
+            return Environment.GetEnvironmentVariable($"REDIS_URL_{instanceName}");
+        }
+
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
@@ -23,6 +28,12 @@ namespace web
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc();
+            services.AddDistributedRedisCache(option =>
+            {
+                var instanceName = "dev";
+                option.Configuration = GetLeanCacheRedisConnectionString(instanceName);
+                option.InstanceName = instanceName;
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

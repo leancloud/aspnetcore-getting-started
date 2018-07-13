@@ -49,29 +49,9 @@ namespace web
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            var instanceName = "dev";
             services.AddMvc();
-            services.AddDistributedRedisCache(option =>
-            {
-
-                option.Configuration = GetLeanCacheRedisConnectionString(instanceName);
-                option.InstanceName = instanceName;
-            });
-            var redisConfiguration = GetRedisConfiguration(instanceName);
-            ConfigurationOptions config = new ConfigurationOptions
-            {
-                EndPoints =
-                {
-                    {
-                        redisConfiguration.EndPoint.Key, redisConfiguration.EndPoint.Value
-                    },
-                },
-                KeepAlive = 180,
-                DefaultVersion = new Version(2, 8, 8),
-                Password = redisConfiguration.Password
-            };
-            var conn = ConnectionMultiplexer.Connect(config);
-            services.AddSingleton<IConnectionMultiplexer>(conn);
+            var instanceName = "dev";
+            services.UseLeanCache(instanceName);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -89,7 +69,6 @@ namespace web
             app.UseStaticFiles();
 
             app.UseCloud();
-            app.TrustProxy();
             app.UseLog();
             app.UseHttpsRedirect();
 

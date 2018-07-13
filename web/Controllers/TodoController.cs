@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using LeanCloud.Engine;
 using Microsoft.AspNetCore.Mvc;
 using StackExchange.Redis;
 using web.Models;
@@ -13,11 +14,18 @@ namespace web.Controllers
     [Route("api/[controller]")]
     public class TodoController : Controller
     {
-        private IConnectionMultiplexer _connectionMultiplexer;
-        public TodoController(IConnectionMultiplexer multiplexer)
+        private readonly Func<string, LeanCache> _serviceAccessor;
+        public string LeanCacheInstanceName = "dev";
+        public TodoController(Func<string, LeanCache> serviceAccessor)
         {
-            this._connectionMultiplexer = multiplexer;
+            _serviceAccessor = serviceAccessor;
         }
+
+        public IConnectionMultiplexer GetConnectionMultiplexer(string leancacheInstanceName)
+        {
+            return _serviceAccessor(leancacheInstanceName).GetConnection();
+        }
+
         // GET: api/todo
         [HttpGet]
         public IEnumerable<string> Get()
@@ -29,7 +37,7 @@ namespace web.Controllers
         [HttpGet("{id}")]
         public JsonResult Get(int id)
         {
-            IDatabase db = _connectionMultiplexer.GetDatabase();
+            IDatabase db = GetConnectionMultiplexer(LeanCacheInstanceName).GetDatabase();
             var json = db.StringGet(id.ToString());
             if (string.IsNullOrEmpty(json)) return Json("{}");
             var todo = Todo.FromJson(json);
@@ -40,7 +48,7 @@ namespace web.Controllers
         [HttpPost]
         public JsonResult Post([FromBody]Todo todo)
         {
-            IDatabase db = _connectionMultiplexer.GetDatabase();
+            IDatabase db = GetConnectionMultiplexer(LeanCacheInstanceName).GetDatabase();
 
             db.StringSet("1", todo.ToJson());
 
